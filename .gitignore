@@ -1,0 +1,14 @@
+# Generated build artifacts
+gathered_links.json
+tools.json
+dates.json
+index.html
+colophon.html
+by-month.html
+
+# Python
+__pycache__/
+*.pyc
+
+# OS
+.DS_Store
