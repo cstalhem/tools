@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SVG Converter</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+            line-height: 1.6;
+            max-width: 900px;
+            margin: 2rem auto;
+            padding: 0 1.5rem;
+            color: #111827;
+        }
+        h1 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+        p.description {
+            color: #6b7280;
+            font-size: 0.95rem;
+            margin-top: 0;
+            margin-bottom: 1.25rem;
+        }
+        .input-tabs {
+            display: flex;
+            gap: 0;
+            margin-bottom: 0;
+        }
+        .input-tabs button {
+            padding: 0.5rem 1rem;
+            border: 1px solid #d1d5db;
+            border-bottom: none;
+            border-radius: 6px 6px 0 0;
+            font-size: 0.85rem;
+            font-family: inherit;
+            cursor: pointer;
+            background: #f9fafb;
+            color: #6b7280;
+        }
+        .input-tabs button.active {
+            background: #fff;
+            color: #111827;
+            font-weight: 600;
+            border-bottom: 1px solid #fff;
+            margin-bottom: -1px;
+            z-index: 1;
+            position: relative;
+        }
+        .input-panel {
+            border: 1px solid #d1d5db;
+            border-radius: 0 6px 6px 6px;
+            padding: 1rem;
+        }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        textarea {
+            width: 100%;
+            min-height: 160px;
+            padding: 0.75rem;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+            font-size: 0.85rem;
+            resize: vertical;
+            line-height: 1.6;
+        }
+        textarea:focus, input:focus {
+            outline: none;
+            border-color: #2563eb;
+            box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
+        }
+        input[type="url"] {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-family: inherit;
+            font-size: 0.95rem;
+        }
+        label {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: 500;
+            margin-bottom: 0.35rem;
+            color: #374151;
+        }
+        .drop-zone {
+            border: 2px dashed #d1d5db;
+            border-radius: 6px;
+            padding: 2rem;
+            text-align: center;
+            color: #6b7280;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: border-color 0.15s, background 0.15s;
+        }
+        .drop-zone.dragover {
+            border-color: #2563eb;
+            background: rgba(37, 99, 235, 0.04);
+        }
+        .drop-zone input[type="file"] { display: none; }
+        button.primary {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            font-family: inherit;
+            cursor: pointer;
+            background: #2563eb;
+            color: #fff;
+        }
+        button.primary:hover { background: #1d4ed8; }
+        button.primary:disabled { background: #d1d5db; cursor: not-allowed; }
+        button.secondary {
+            padding: 0.5rem 1rem;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            font-family: inherit;
+            cursor: pointer;
+            background: #fff;
+            color: #111827;
+        }
+        button.secondary:hover { background: #f9fafb; }
+        .actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+        .output {
+            display: none;
+            margin-top: 1.5rem;
+        }
+        .output.visible { display: block; }
+        .output h2 {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+        }
+        .result-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+        .preview-box {
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            padding: 1rem;
+        }
+        .preview-box h3 {
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin: 0 0 0.5rem 0;
+            color: #374151;
+        }
+        .preview-svg {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 120px;
+            background: #f9fafb;
+            border-radius: 4px;
+            padding: 1rem;
+        }
+        .preview-svg svg {
+            max-width: 96px;
+            max-height: 96px;
+        }
+        .code-output {
+            margin-top: 1rem;
+        }
+        .code-output textarea {
+            min-height: 120px;
+            background: #f9fafb;
+        }
+        .output-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 0.75rem;
+        }
+        .error {
+            display: none;
+            margin-top: 0.75rem;
+            padding: 0.75rem;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            color: #991b1b;
+            background: #fef2f2;
+        }
+        .error.visible { display: block; }
+        .size-info {
+            display: flex;
+            gap: 1.5rem;
+            margin-top: 0.5rem;
+            font-size: 0.8rem;
+            color: #6b7280;
+        }
+        @media (max-width: 600px) {
+            body { padding: 0 1rem; margin: 1rem auto; }
+            h1 { font-size: 1.1rem; }
+            .result-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <h1>SVG Converter</h1>
+    <p class="description">Convert any SVG into a clean, icon-ready format: 24&times;24 viewBox, single <code>currentColor</code> fill, no styles or defs.</p>
+
+    <div class="input-tabs">
+        <button class="active" data-tab="paste">Paste SVG</button>
+        <button data-tab="file">Upload File</button>
+        <button data-tab="url">From URL</button>
+    </div>
+    <div class="input-panel">
+        <div id="tab-paste" class="tab-content active">
+            <label for="svg-input">SVG markup</label>
+            <textarea id="svg-input" placeholder="Paste your SVG code here..."></textarea>
+        </div>
+        <div id="tab-file" class="tab-content">
+            <div class="drop-zone" id="drop-zone">
+                <p>Drop an SVG file here or click to browse</p>
+                <input type="file" id="file-input" accept=".svg,image/svg+xml">
+            </div>
+        </div>
+        <div id="tab-url" class="tab-content">
+            <label for="url-input">SVG URL</label>
+            <input type="url" id="url-input" placeholder="https://example.com/icon.svg">
+            <div class="actions">
+                <button class="primary" id="fetch-btn">Fetch</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="actions">
+        <button class="primary" id="convert-btn">Convert</button>
+    </div>
+
+    <div id="error" class="error"></div>
+
+    <div id="output" class="output">
+        <h2>Result</h2>
+        <div class="result-grid">
+            <div class="preview-box">
+                <h3>Original</h3>
+                <div class="preview-svg" id="preview-original"></div>
+            </div>
+            <div class="preview-box">
+                <h3>Converted</h3>
+                <div class="preview-svg" id="preview-converted"></div>
+            </div>
+        </div>
+        <div class="size-info">
+            <span>Original: <strong id="size-original">—</strong></span>
+            <span>Converted: <strong id="size-converted">—</strong></span>
+        </div>
+        <div class="code-output">
+            <label for="output-code">Converted SVG</label>
+            <textarea id="output-code" readonly></textarea>
+        </div>
+        <div class="output-actions">
+            <button class="primary" id="copy-btn">Copy SVG</button>
+            <button class="secondary" id="download-btn">Download</button>
+        </div>
+    </div>
+
+    <script>
+        (function () {
+            const svgInput = document.getElementById('svg-input');
+            const fileInput = document.getElementById('file-input');
+            const dropZone = document.getElementById('drop-zone');
+            const urlInput = document.getElementById('url-input');
+            const fetchBtn = document.getElementById('fetch-btn');
+            const convertBtn = document.getElementById('convert-btn');
+            const errorEl = document.getElementById('error');
+            const outputEl = document.getElementById('output');
+            const previewOriginal = document.getElementById('preview-original');
+            const previewConverted = document.getElementById('preview-converted');
+            const sizeOriginal = document.getElementById('size-original');
+            const sizeConverted = document.getElementById('size-converted');
+            const outputCode = document.getElementById('output-code');
+            const copyBtn = document.getElementById('copy-btn');
+            const downloadBtn = document.getElementById('download-btn');
+
+            let currentTab = 'paste';
+            let rawSvg = '';
+
+            // Tab switching
+            document.querySelectorAll('.input-tabs button').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('.input-tabs button').forEach(b => b.classList.remove('active'));
+                    document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+                    btn.classList.add('active');
+                    currentTab = btn.dataset.tab;
+                    document.getElementById('tab-' + currentTab).classList.add('active');
+                });
+            });
+
+            // File upload
+            dropZone.addEventListener('click', () => fileInput.click());
+            dropZone.addEventListener('dragover', e => {
+                e.preventDefault();
+                dropZone.classList.add('dragover');
+            });
+            dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+            dropZone.addEventListener('drop', e => {
+                e.preventDefault();
+                dropZone.classList.remove('dragover');
+                const file = e.dataTransfer.files[0];
+                if (file) readFile(file);
+            });
+            fileInput.addEventListener('change', () => {
+                if (fileInput.files[0]) readFile(fileInput.files[0]);
+            });
+
+            function readFile(file) {
+                if (!file.name.endsWith('.svg') && file.type !== 'image/svg+xml') {
+                    showError('Please select an SVG file.');
+                    return;
+                }
+                const reader = new FileReader();
+                reader.onload = () => {
+                    rawSvg = reader.result;
+                    dropZone.querySelector('p').textContent = file.name;
+                    hideError();
+                };
+                reader.readAsText(file);
+            }
+
+            // URL fetch
+            fetchBtn.addEventListener('click', async () => {
+                const url = urlInput.value.trim();
+                if (!url) { showError('Enter a URL.'); return; }
+                fetchBtn.disabled = true;
+                fetchBtn.textContent = 'Fetching…';
+                hideError();
+                try {
+                    const res = await fetch(url);
+                    if (!res.ok) throw new Error('HTTP ' + res.status);
+                    const text = await res.text();
+                    if (!text.includes('<svg')) throw new Error('Response does not contain SVG.');
+                    rawSvg = text;
+                    urlInput.style.borderColor = '#22c55e';
+                    setTimeout(() => { urlInput.style.borderColor = ''; }, 1500);
+                } catch (err) {
+                    showError('Failed to fetch: ' + err.message);
+                } finally {
+                    fetchBtn.disabled = false;
+                    fetchBtn.textContent = 'Fetch';
+                }
+            });
+
+            // Convert
+            convertBtn.addEventListener('click', () => {
+                hideError();
+                outputEl.classList.remove('visible');
+
+                let source = '';
+                if (currentTab === 'paste') source = svgInput.value.trim();
+                else if (currentTab === 'file' || currentTab === 'url') source = rawSvg;
+
+                if (!source) {
+                    showError('No SVG provided. Paste markup, upload a file, or fetch from a URL.');
+                    return;
+                }
+                if (!source.includes('<svg')) {
+                    showError('Input does not appear to contain SVG markup.');
+                    return;
+                }
+
+                try {
+                    const result = convertSvg(source);
+                    showResult(source, result);
+                } catch (err) {
+                    showError('Conversion failed: ' + err.message);
+                }
+            });
+
+            function convertSvg(source) {
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(source, 'image/svg+xml');
+                const parserError = doc.querySelector('parsererror');
+                if (parserError) throw new Error('Invalid SVG: ' + parserError.textContent.slice(0, 100));
+
+                const svg = doc.querySelector('svg');
+                if (!svg) throw new Error('No <svg> element found.');
+
+                // Determine the original viewBox for coordinate mapping
+                let vb = svg.getAttribute('viewBox');
+                if (!vb) {
+                    const w = parseFloat(svg.getAttribute('width')) || 24;
+                    const h = parseFloat(svg.getAttribute('height')) || 24;
+                    vb = '0 0 ' + w + ' ' + h;
+                }
+                const [origX, origY, origW, origH] = vb.split(/[\s,]+/).map(Number);
+
+                // Collect all path 'd' values, flattening groups with transforms
+                const paths = [];
+                collectPaths(svg, '', paths);
+
+                // Also convert basic shapes to paths
+                collectShapes(svg, '', paths);
+
+                if (paths.length === 0) throw new Error('No paths or shapes found in SVG.');
+
+                // Build scale transform if original viewBox != 24x24
+                const needsScale = origW !== 24 || origH !== 24 || origX !== 0 || origY !== 0;
+                let finalPaths = paths;
+
+                if (needsScale) {
+                    const sx = 24 / origW;
+                    const sy = 24 / origH;
+                    const tx = -origX;
+                    const ty = -origY;
+                    finalPaths = paths.map(d => {
+                        return transformPathData(d, tx, ty, sx, sy);
+                    });
+                }
+
+                // Build output SVG
+                const pathEls = finalPaths.map(d =>
+                    '  <path fill="currentColor" d="' + d + '"/>'
+                ).join('\n');
+
+                return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">\n' + pathEls + '\n</svg>';
+            }
+
+            function collectPaths(el, parentTransform, paths) {
+                for (const child of el.children) {
+                    const tag = child.tagName.toLowerCase();
+                    if (tag === 'style' || tag === 'defs' || tag === 'clippath' ||
+                        tag === 'lineargradient' || tag === 'radialgradient' ||
+                        tag === 'metadata' || tag === 'title' || tag === 'desc') continue;
+
+                    const localTx = child.getAttribute('transform') || '';
+                    const combinedTx = (parentTransform + ' ' + localTx).trim();
+
+                    if (tag === 'path') {
+                        let d = child.getAttribute('d');
+                        if (d) {
+                            if (combinedTx) d = applyTransformToPath(d, combinedTx);
+                            paths.push(d);
+                        }
+                    } else if (tag === 'g' || tag === 'svg') {
+                        collectPaths(child, combinedTx, paths);
+                        collectShapes(child, combinedTx, paths);
+                    }
+                }
+            }
+
+            function collectShapes(el, parentTransform, paths) {
+                for (const child of el.children) {
+                    const tag = child.tagName.toLowerCase();
+                    const localTx = child.getAttribute('transform') || '';
+                    const combinedTx = (parentTransform + ' ' + localTx).trim();
+                    let d = null;
+
+                    if (tag === 'rect') d = rectToPath(child);
+                    else if (tag === 'circle') d = circleToPath(child);
+                    else if (tag === 'ellipse') d = ellipseToPath(child);
+                    else if (tag === 'line') d = lineToPath(child);
+                    else if (tag === 'polygon') d = polygonToPath(child);
+                    else if (tag === 'polyline') d = polylineToPath(child);
+
+                    if (d) {
+                        if (combinedTx) d = applyTransformToPath(d, combinedTx);
+                        paths.push(d);
+                    }
+                }
+            }
+
+            function attr(el, name, fallback) {
+                const v = el.getAttribute(name);
+                return v !== null ? parseFloat(v) : (fallback || 0);
+            }
+
+            function rectToPath(el) {
+                const x = attr(el, 'x'), y = attr(el, 'y');
+                const w = attr(el, 'width'), h = attr(el, 'height');
+                let rx = attr(el, 'rx'), ry = attr(el, 'ry');
+                if (rx && !ry) ry = rx;
+                if (ry && !rx) rx = ry;
+                rx = Math.min(rx, w / 2);
+                ry = Math.min(ry, h / 2);
+                if (rx === 0 && ry === 0) {
+                    return 'M' + x + ' ' + y + 'h' + w + 'v' + h + 'h' + (-w) + 'Z';
+                }
+                return 'M' + (x + rx) + ' ' + y +
+                    'h' + (w - 2 * rx) +
+                    'a' + rx + ' ' + ry + ' 0 0 1 ' + rx + ' ' + ry +
+                    'v' + (h - 2 * ry) +
+                    'a' + rx + ' ' + ry + ' 0 0 1 ' + (-rx) + ' ' + ry +
+                    'h' + (-(w - 2 * rx)) +
+                    'a' + rx + ' ' + ry + ' 0 0 1 ' + (-rx) + ' ' + (-ry) +
+                    'v' + (-(h - 2 * ry)) +
+                    'a' + rx + ' ' + ry + ' 0 0 1 ' + rx + ' ' + (-ry) +
+                    'Z';
+            }
+
+            function circleToPath(el) {
+                const cx = attr(el, 'cx'), cy = attr(el, 'cy'), r = attr(el, 'r');
+                return 'M' + (cx - r) + ' ' + cy +
+                    'a' + r + ' ' + r + ' 0 1 0 ' + (2 * r) + ' 0' +
+                    'a' + r + ' ' + r + ' 0 1 0 ' + (-2 * r) + ' 0Z';
+            }
+
+            function ellipseToPath(el) {
+                const cx = attr(el, 'cx'), cy = attr(el, 'cy');
+                const rx = attr(el, 'rx'), ry = attr(el, 'ry');
+                return 'M' + (cx - rx) + ' ' + cy +
+                    'a' + rx + ' ' + ry + ' 0 1 0 ' + (2 * rx) + ' 0' +
+                    'a' + rx + ' ' + ry + ' 0 1 0 ' + (-2 * rx) + ' 0Z';
+            }
+
+            function lineToPath(el) {
+                return 'M' + attr(el, 'x1') + ' ' + attr(el, 'y1') +
+                    'L' + attr(el, 'x2') + ' ' + attr(el, 'y2');
+            }
+
+            function polygonToPath(el) {
+                const pts = el.getAttribute('points') || '';
+                return 'M' + pts.trim().replace(/\s+/g, 'L') + 'Z';
+            }
+
+            function polylineToPath(el) {
+                const pts = el.getAttribute('points') || '';
+                return 'M' + pts.trim().replace(/\s+/g, 'L');
+            }
+
+            // Simple SVG transform parser and path data transformer
+            function parseTransform(txStr) {
+                const ops = [];
+                const re = /(translate|scale|rotate|matrix|skewX|skewY)\(([^)]+)\)/gi;
+                let m;
+                while ((m = re.exec(txStr)) !== null) {
+                    const type = m[1].toLowerCase();
+                    const args = m[2].split(/[\s,]+/).map(Number);
+                    ops.push({ type, args });
+                }
+                return ops;
+            }
+
+            function opsToMatrix(ops) {
+                let mat = [1, 0, 0, 1, 0, 0]; // [a, b, c, d, e, f]
+                for (const op of ops) {
+                    let m2;
+                    switch (op.type) {
+                        case 'matrix':
+                            m2 = op.args;
+                            break;
+                        case 'translate':
+                            m2 = [1, 0, 0, 1, op.args[0], op.args[1] || 0];
+                            break;
+                        case 'scale': {
+                            const sx = op.args[0], sy = op.args.length > 1 ? op.args[1] : sx;
+                            m2 = [sx, 0, 0, sy, 0, 0];
+                            break;
+                        }
+                        case 'rotate': {
+                            const a = op.args[0] * Math.PI / 180;
+                            const cos = Math.cos(a), sin = Math.sin(a);
+                            if (op.args.length === 3) {
+                                const cx = op.args[1], cy = op.args[2];
+                                m2 = multiplyMatrices(
+                                    [1, 0, 0, 1, cx, cy],
+                                    multiplyMatrices([cos, sin, -sin, cos, 0, 0], [1, 0, 0, 1, -cx, -cy])
+                                );
+                            } else {
+                                m2 = [cos, sin, -sin, cos, 0, 0];
+                            }
+                            break;
+                        }
+                        case 'skewx': {
+                            const a = Math.tan(op.args[0] * Math.PI / 180);
+                            m2 = [1, 0, a, 1, 0, 0];
+                            break;
+                        }
+                        case 'skewy': {
+                            const a = Math.tan(op.args[0] * Math.PI / 180);
+                            m2 = [1, a, 0, 1, 0, 0];
+                            break;
+                        }
+                        default:
+                            continue;
+                    }
+                    mat = multiplyMatrices(mat, m2);
+                }
+                return mat;
+            }
+
+            function multiplyMatrices(a, b) {
+                return [
+                    a[0] * b[0] + a[2] * b[1],
+                    a[1] * b[0] + a[3] * b[1],
+                    a[0] * b[2] + a[2] * b[3],
+                    a[1] * b[2] + a[3] * b[3],
+                    a[0] * b[4] + a[2] * b[5] + a[4],
+                    a[1] * b[4] + a[3] * b[5] + a[5]
+                ];
+            }
+
+            function applyTransformToPath(d, txStr) {
+                const ops = parseTransform(txStr);
+                if (ops.length === 0) return d;
+                const mat = opsToMatrix(ops);
+                return applyMatrixToPath(d, mat);
+            }
+
+            function transformPathData(d, tx, ty, sx, sy) {
+                const mat = [sx, 0, 0, sy, tx * sx, ty * sy];
+                return applyMatrixToPath(d, mat);
+            }
+
+            function applyMatrixToPath(d, mat) {
+                const tokens = tokenizePath(d);
+                const result = [];
+                let i = 0;
+                let currentCmd = '';
+                const isIdentity = Math.abs(mat[0] - 1) < 1e-10 && Math.abs(mat[1]) < 1e-10 &&
+                    Math.abs(mat[2]) < 1e-10 && Math.abs(mat[3] - 1) < 1e-10 &&
+                    Math.abs(mat[4]) < 1e-10 && Math.abs(mat[5]) < 1e-10;
+                if (isIdentity) return d;
+
+                while (i < tokens.length) {
+                    const tok = tokens[i];
+                    if (typeof tok === 'string') {
+                        currentCmd = tok;
+                        result.push(tok);
+                        i++;
+                        continue;
+                    }
+
+                    const cmd = currentCmd;
+                    const upper = cmd.toUpperCase();
+                    const isRel = cmd !== upper;
+
+                    switch (upper) {
+                        case 'M': case 'L': case 'T': {
+                            const x = tokens[i], y = tokens[i + 1];
+                            const [nx, ny] = transformPoint(x, y, mat, isRel);
+                            result.push(r(nx), r(ny));
+                            i += 2;
+                            break;
+                        }
+                        case 'H': {
+                            const x = tokens[i], y = 0;
+                            const [nx, ny] = transformPoint(x, y, mat, isRel);
+                            // H becomes L after non-axis-aligned transforms
+                            if (Math.abs(ny) > 1e-6 || Math.abs(mat[1]) > 1e-10 || Math.abs(mat[2]) > 1e-10) {
+                                result.splice(result.lastIndexOf(cmd), 1, isRel ? 'l' : 'L');
+                                result.push(r(nx), r(ny));
+                            } else {
+                                result.push(r(nx));
+                            }
+                            i += 1;
+                            break;
+                        }
+                        case 'V': {
+                            const x = 0, y = tokens[i];
+                            const [nx, ny] = transformPoint(x, y, mat, isRel);
+                            if (Math.abs(nx) > 1e-6 || Math.abs(mat[1]) > 1e-10 || Math.abs(mat[2]) > 1e-10) {
+                                result.splice(result.lastIndexOf(cmd), 1, isRel ? 'l' : 'L');
+                                result.push(r(nx), r(ny));
+                            } else {
+                                result.push(r(ny));
+                            }
+                            i += 1;
+                            break;
+                        }
+                        case 'C': {
+                            const coords = tokens.slice(i, i + 6);
+                            for (let j = 0; j < 6; j += 2) {
+                                const [nx, ny] = transformPoint(coords[j], coords[j + 1], mat, isRel);
+                                result.push(r(nx), r(ny));
+                            }
+                            i += 6;
+                            break;
+                        }
+                        case 'S': case 'Q': {
+                            const coords = tokens.slice(i, i + 4);
+                            for (let j = 0; j < 4; j += 2) {
+                                const [nx, ny] = transformPoint(coords[j], coords[j + 1], mat, isRel);
+                                result.push(r(nx), r(ny));
+                            }
+                            i += 4;
+                            break;
+                        }
+                        case 'A': {
+                            const rx = tokens[i], ry = tokens[i + 1];
+                            const xRot = tokens[i + 2], largeArc = tokens[i + 3], sweep = tokens[i + 4];
+                            const x = tokens[i + 5], y = tokens[i + 6];
+                            // Scale radii
+                            const sx = Math.sqrt(mat[0] * mat[0] + mat[1] * mat[1]);
+                            const sy = Math.sqrt(mat[2] * mat[2] + mat[3] * mat[3]);
+                            const [nx, ny] = transformPoint(x, y, mat, isRel);
+                            result.push(r(rx * sx), r(ry * sy), r(xRot), largeArc, sweep, r(nx), r(ny));
+                            i += 7;
+                            break;
+                        }
+                        case 'Z': {
+                            i++;
+                            break;
+                        }
+                        default: {
+                            result.push(tokens[i]);
+                            i++;
+                        }
+                    }
+                }
+                return result.join(' ').replace(/ ([A-Za-z])/g, '$1').replace(/([A-Za-z]) /g, '$1');
+            }
+
+            function transformPoint(x, y, mat, relative) {
+                if (relative) {
+                    return [mat[0] * x + mat[2] * y, mat[1] * x + mat[3] * y];
+                }
+                return [mat[0] * x + mat[2] * y + mat[4], mat[1] * x + mat[3] * y + mat[5]];
+            }
+
+            function r(n) {
+                return Math.round(n * 1000) / 1000;
+            }
+
+            function tokenizePath(d) {
+                const tokens = [];
+                const re = /([MmZzLlHhVvCcSsQqTtAa])|(-?\d*\.?\d+(?:e[+-]?\d+)?)/gi;
+                let m;
+                while ((m = re.exec(d)) !== null) {
+                    if (m[1]) tokens.push(m[1]);
+                    else tokens.push(parseFloat(m[2]));
+                }
+                return tokens;
+            }
+
+            function formatBytes(n) {
+                if (n < 1024) return n + ' B';
+                return (n / 1024).toFixed(1) + ' KB';
+            }
+
+            function showResult(original, converted) {
+                // Show original preview
+                previewOriginal.innerHTML = '';
+                const origDiv = document.createElement('div');
+                origDiv.innerHTML = original;
+                const origSvg = origDiv.querySelector('svg');
+                if (origSvg) {
+                    origSvg.removeAttribute('width');
+                    origSvg.removeAttribute('height');
+                    origSvg.style.width = '96px';
+                    origSvg.style.height = '96px';
+                    previewOriginal.appendChild(origSvg);
+                }
+
+                // Show converted preview
+                previewConverted.innerHTML = '';
+                const convDiv = document.createElement('div');
+                convDiv.innerHTML = converted;
+                const convSvg = convDiv.querySelector('svg');
+                if (convSvg) {
+                    convSvg.style.width = '96px';
+                    convSvg.style.height = '96px';
+                    convSvg.style.color = '#111827';
+                    previewConverted.appendChild(convSvg);
+                }
+
+                sizeOriginal.textContent = formatBytes(new Blob([original]).size);
+                sizeConverted.textContent = formatBytes(new Blob([converted]).size);
+
+                outputCode.value = converted;
+                outputEl.classList.add('visible');
+            }
+
+            // Copy
+            copyBtn.addEventListener('click', () => {
+                navigator.clipboard.writeText(outputCode.value).then(() => {
+                    copyBtn.textContent = 'Copied!';
+                    setTimeout(() => { copyBtn.textContent = 'Copy SVG'; }, 1500);
+                });
+            });
+
+            // Download
+            downloadBtn.addEventListener('click', () => {
+                const blob = new Blob([outputCode.value], { type: 'image/svg+xml' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'icon.svg';
+                a.click();
+                URL.revokeObjectURL(url);
+            });
+
+            function showError(msg) {
+                errorEl.textContent = msg;
+                errorEl.classList.add('visible');
+            }
+            function hideError() {
+                errorEl.classList.remove('visible');
+            }
+        })();
+    </script>
+</body>
+</html>
