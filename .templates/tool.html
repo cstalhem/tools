@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tool Name</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+            line-height: 1.6;
+            max-width: 640px;
+            margin: 2rem auto;
+            padding: 0 1.5rem;
+            color: #111827;
+        }
+        h1 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+        p.description {
+            color: #6b7280;
+            font-size: 0.95rem;
+            margin-top: 0;
+            margin-bottom: 1.25rem;
+        }
+        textarea, input[type="text"], input[type="url"], input[type="number"], select {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-family: inherit;
+            font-size: 0.95rem;
+        }
+        textarea {
+            min-height: 200px;
+            resize: vertical;
+            line-height: 1.6;
+        }
+        textarea:focus, input:focus, select:focus {
+            outline: none;
+            border-color: #2563eb;
+            box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
+        }
+        button {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            font-family: inherit;
+            cursor: pointer;
+            background: #2563eb;
+            color: #fff;
+        }
+        button:hover { background: #1d4ed8; }
+        button:disabled { background: #d1d5db; cursor: not-allowed; }
+        .output {
+            display: none;
+            margin-top: 1rem;
+        }
+        .output.visible { display: block; }
+        .error {
+            display: none;
+            margin-top: 0.75rem;
+            padding: 0.75rem;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            color: #991b1b;
+            background: #fef2f2;
+        }
+        .error.visible { display: block; }
+        @media (max-width: 600px) {
+            body { padding: 0 1rem; margin: 1rem auto; }
+            h1 { font-size: 1.1rem; }
+        }
+    </style>
+</head>
+<body>
+    <h1>Tool Name</h1>
+    <p class="description">Brief description of what the tool does.</p>
+
+    <!-- Input area — adjust to suit the tool -->
+    <textarea id="input" placeholder="Paste or type here..." autofocus></textarea>
+
+    <!-- Output area — hidden until there are results -->
+    <div id="output" class="output"></div>
+
+    <!-- Error display -->
+    <div id="error" class="error"></div>
+
+    <script>
+        const input = document.getElementById('input');
+        const output = document.getElementById('output');
+        const error = document.getElementById('error');
+
+        function showError(message) {
+            error.textContent = message;
+            error.classList.add('visible');
+        }
+
+        function hideError() {
+            error.classList.remove('visible');
+        }
+
+        function update() {
+            hideError();
+            const text = input.value;
+            if (!text.trim()) {
+                output.classList.remove('visible');
+                return;
+            }
+            // Process input and display results
+            output.classList.add('visible');
+        }
+
+        input.addEventListener('input', update);
+    </script>
+</body>
+</html>
