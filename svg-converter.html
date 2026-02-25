@@ -99,30 +99,35 @@
         .output.visible { display: block; }
         .preview-row {
             display: flex;
-            gap: 1.5rem;
-            align-items: flex-start;
-            margin-bottom: 1rem;
+            gap: 2rem;
+            justify-content: center;
+            margin-bottom: 1.25rem;
+        }
+        .preview-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
         .preview-box {
-            flex-shrink: 0;
-            width: 96px;
-            height: 96px;
+            width: 120px;
+            height: 120px;
             border: 1px solid #d1d5db;
             border-radius: 6px;
             display: flex;
             align-items: center;
             justify-content: center;
             background: #fff;
+            overflow: hidden;
         }
         .preview-box svg {
-            width: 64px;
-            height: 64px;
+            width: 80px;
+            height: 80px;
         }
         .preview-label {
             font-size: 0.8rem;
             color: #6b7280;
             text-align: center;
-            margin-top: 0.25rem;
+            margin-top: 0.35rem;
         }
         .code-block {
             width: 100%;
@@ -155,8 +160,8 @@
         @media (max-width: 600px) {
             body { padding: 0 1rem; margin: 1rem auto; }
             h1 { font-size: 1.1rem; }
-            .preview-row { flex-direction: column; align-items: stretch; }
-            .preview-box { align-self: center; }
+            .preview-row { gap: 1rem; }
+            .preview-box { width: 100px; height: 100px; }
         }
     </style>
 </head>
@@ -179,14 +184,16 @@
 
     <div id="output" class="output">
         <div class="preview-row">
-            <div>
-                <div class="preview-box" id="preview"></div>
-                <div class="preview-label">Preview</div>
+            <div class="preview-item">
+                <div class="preview-box" id="preview-original"></div>
+                <div class="preview-label">Original</div>
             </div>
-            <div style="flex:1;min-width:0;">
-                <textarea class="code-block" id="code-output" readonly></textarea>
+            <div class="preview-item">
+                <div class="preview-box" id="preview-converted"></div>
+                <div class="preview-label">Converted</div>
             </div>
         </div>
+        <textarea class="code-block" id="code-output" readonly></textarea>
         <div class="btn-row">
             <button id="download-btn">Download SVG</button>
             <button id="copy-btn" class="btn-secondary">Copy code</button>
@@ -201,7 +208,8 @@
         const dropZone = document.getElementById('drop-zone');
         const fileInput = document.getElementById('file-input');
         const output = document.getElementById('output');
-        const preview = document.getElementById('preview');
+        const previewOriginal = document.getElementById('preview-original');
+        const previewConverted = document.getElementById('preview-converted');
         const codeOutput = document.getElementById('code-output');
         const downloadBtn = document.getElementById('download-btn');
         const copyBtn = document.getElementById('copy-btn');
@@ -359,7 +367,18 @@
             try {
                 convertedSvg = convertSvg(raw);
                 codeOutput.value = convertedSvg;
-                preview.innerHTML = convertedSvg;
+
+                // Show original SVG scaled to fit the preview box
+                const parser = new DOMParser();
+                const origDoc = parser.parseFromString(raw, 'image/svg+xml');
+                const origSvg = origDoc.documentElement;
+                if (origSvg.tagName === 'svg') {
+                    previewOriginal.innerHTML = new XMLSerializer().serializeToString(origSvg);
+                    const el = previewOriginal.querySelector('svg');
+                    if (el) { el.style.width = '80px'; el.style.height = '80px'; }
+                }
+
+                previewConverted.innerHTML = convertedSvg;
                 output.classList.add('visible');
                 hideError();
             } catch (e) {
