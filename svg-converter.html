@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SVG Icon Converter</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+            line-height: 1.6;
+            max-width: 640px;
+            margin: 2rem auto;
+            padding: 0 1.5rem;
+            color: #111827;
+        }
+        h1 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+        p.description {
+            color: #6b7280;
+            font-size: 0.95rem;
+            margin-top: 0;
+            margin-bottom: 1.25rem;
+        }
+        input[type="url"] {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-family: inherit;
+            font-size: 0.95rem;
+        }
+        input[type="url"]:focus {
+            outline: none;
+            border-color: #2563eb;
+            box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
+        }
+        .drop-zone {
+            margin-top: 0.75rem;
+            border: 2px dashed #d1d5db;
+            border-radius: 6px;
+            padding: 2rem 1rem;
+            text-align: center;
+            color: #6b7280;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: border-color 0.15s, background 0.15s;
+        }
+        .drop-zone.dragover {
+            border-color: #2563eb;
+            background: rgba(37, 99, 235, 0.04);
+        }
+        .drop-zone input[type="file"] { display: none; }
+        .separator {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin: 0.75rem 0;
+            color: #6b7280;
+            font-size: 0.85rem;
+        }
+        .separator::before, .separator::after {
+            content: "";
+            flex: 1;
+            height: 1px;
+            background: #e5e7eb;
+        }
+        button {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            font-family: inherit;
+            cursor: pointer;
+            background: #2563eb;
+            color: #fff;
+        }
+        button:hover { background: #1d4ed8; }
+        button:disabled { background: #d1d5db; cursor: not-allowed; }
+        .btn-row {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 0.75rem;
+            flex-wrap: wrap;
+        }
+        .btn-secondary {
+            background: #fff;
+            color: #111827;
+            border: 1px solid #d1d5db;
+        }
+        .btn-secondary:hover { background: #f9fafb; }
+        .output {
+            display: none;
+            margin-top: 1.25rem;
+        }
+        .output.visible { display: block; }
+        .preview-row {
+            display: flex;
+            gap: 1.5rem;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+        }
+        .preview-box {
+            flex-shrink: 0;
+            width: 96px;
+            height: 96px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #fff;
+        }
+        .preview-box svg {
+            width: 64px;
+            height: 64px;
+        }
+        .preview-label {
+            font-size: 0.8rem;
+            color: #6b7280;
+            text-align: center;
+            margin-top: 0.25rem;
+        }
+        .code-block {
+            width: 100%;
+            min-height: 100px;
+            padding: 0.75rem;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-family: ui-monospace, "Cascadia Code", "Source Code Pro", Menlo, Consolas, monospace;
+            font-size: 0.8rem;
+            line-height: 1.5;
+            resize: vertical;
+            background: #f9fafb;
+            color: #111827;
+        }
+        .code-block:focus {
+            outline: none;
+            border-color: #2563eb;
+            box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
+        }
+        .error {
+            display: none;
+            margin-top: 0.75rem;
+            padding: 0.75rem;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            color: #991b1b;
+            background: #fef2f2;
+        }
+        .error.visible { display: block; }
+        @media (max-width: 600px) {
+            body { padding: 0 1rem; margin: 1rem auto; }
+            h1 { font-size: 1.1rem; }
+            .preview-row { flex-direction: column; align-items: stretch; }
+            .preview-box { align-self: center; }
+        }
+    </style>
+</head>
+<body>
+    <h1>SVG Icon Converter</h1>
+    <p class="description">Convert any SVG into a clean, monochrome 24&times;24 icon with <code>fill="currentColor"</code>.</p>
+
+    <label for="url-input" style="font-size:0.9rem;font-weight:500;">Paste an SVG URL</label>
+    <div style="display:flex;gap:0.5rem;margin-top:0.35rem;">
+        <input type="url" id="url-input" placeholder="https://example.com/icon.svg">
+        <button id="fetch-btn">Fetch</button>
+    </div>
+
+    <div class="separator">or</div>
+
+    <div class="drop-zone" id="drop-zone">
+        <div>Drop an SVG file here or <strong>click to browse</strong></div>
+        <input type="file" id="file-input" accept=".svg,image/svg+xml">
+    </div>
+
+    <div id="output" class="output">
+        <div class="preview-row">
+            <div>
+                <div class="preview-box" id="preview"></div>
+                <div class="preview-label">Preview</div>
+            </div>
+            <div style="flex:1;min-width:0;">
+                <textarea class="code-block" id="code-output" readonly></textarea>
+            </div>
+        </div>
+        <div class="btn-row">
+            <button id="download-btn">Download SVG</button>
+            <button id="copy-btn" class="btn-secondary">Copy code</button>
+        </div>
+    </div>
+
+    <div id="error" class="error"></div>
+
+    <script type="module">
+        const urlInput = document.getElementById('url-input');
+        const fetchBtn = document.getElementById('fetch-btn');
+        const dropZone = document.getElementById('drop-zone');
+        const fileInput = document.getElementById('file-input');
+        const output = document.getElementById('output');
+        const preview = document.getElementById('preview');
+        const codeOutput = document.getElementById('code-output');
+        const downloadBtn = document.getElementById('download-btn');
+        const copyBtn = document.getElementById('copy-btn');
+        const errorEl = document.getElementById('error');
+
+        let convertedSvg = '';
+
+        function showError(msg) {
+            errorEl.textContent = msg;
+            errorEl.classList.add('visible');
+            output.classList.remove('visible');
+        }
+
+        function hideError() {
+            errorEl.classList.remove('visible');
+        }
+
+        // ── SVG conversion logic ──
+
+        function convertSvg(raw) {
+            hideError();
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(raw, 'image/svg+xml');
+            const parseError = doc.querySelector('parsererror');
+            if (parseError) throw new Error('Invalid SVG: could not parse the file.');
+
+            const srcSvg = doc.documentElement;
+            if (srcSvg.tagName !== 'svg') throw new Error('Invalid SVG: root element is not <svg>.');
+
+            // Determine the source viewBox so we can remap coordinates
+            const srcViewBox = resolveViewBox(srcSvg);
+
+            // Collect every visible shape, flattening groups
+            const paths = [];
+            collectPaths(srcSvg, paths);
+            if (paths.length === 0) throw new Error('No drawable paths found in SVG.');
+
+            // Build the clean SVG
+            const ns = 'http://www.w3.org/2000/svg';
+            const svg = document.createElementNS(ns, 'svg');
+            svg.setAttribute('xmlns', ns);
+            svg.setAttribute('viewBox', '0 0 24 24');
+            svg.setAttribute('fill', 'currentColor');
+
+            // If source viewBox is already 0 0 24 24, just copy paths.
+            // Otherwise wrap in a <g> with a transform to rescale.
+            const needsTransform = !(
+                srcViewBox.x === 0 && srcViewBox.y === 0 &&
+                srcViewBox.w === 24 && srcViewBox.h === 24
+            );
+
+            let container = svg;
+            if (needsTransform) {
+                const g = document.createElementNS(ns, 'g');
+                const sx = 24 / srcViewBox.w;
+                const sy = 24 / srcViewBox.h;
+                const tx = -srcViewBox.x;
+                const ty = -srcViewBox.y;
+                g.setAttribute('transform', `translate(${fmt(tx * sx)},${fmt(ty * sy)}) scale(${fmt(sx)},${fmt(sy)})`);
+                svg.appendChild(g);
+                container = g;
+            }
+
+            for (const p of paths) {
+                const el = document.createElementNS(ns, p.tag);
+                for (const [k, v] of Object.entries(p.attrs)) {
+                    el.setAttribute(k, v);
+                }
+                container.appendChild(el);
+            }
+
+            // Serialize
+            const serializer = new XMLSerializer();
+            let code = serializer.serializeToString(svg);
+            // Tidy up namespace noise the serializer may add to children
+            code = code.replace(/ xmlns="[^"]*"/g, (m, offset) => offset === code.indexOf(m) ? m : '');
+
+            return code;
+        }
+
+        function resolveViewBox(svg) {
+            const vb = svg.getAttribute('viewBox');
+            if (vb) {
+                const parts = vb.trim().split(/[\s,]+/).map(Number);
+                if (parts.length === 4 && parts.every(n => isFinite(n))) {
+                    return { x: parts[0], y: parts[1], w: parts[2], h: parts[3] };
+                }
+            }
+            // Fall back to width/height attributes
+            const w = parseFloat(svg.getAttribute('width')) || 24;
+            const h = parseFloat(svg.getAttribute('height')) || 24;
+            return { x: 0, y: 0, w, h };
+        }
+
+        // Geometry attributes we want to keep per element type
+        const KEEP_ATTRS = {
+            path: ['d', 'fill-rule', 'clip-rule'],
+            circle: ['cx', 'cy', 'r'],
+            ellipse: ['cx', 'cy', 'rx', 'ry'],
+            rect: ['x', 'y', 'width', 'height', 'rx', 'ry'],
+            line: ['x1', 'y1', 'x2', 'y2'],
+            polyline: ['points'],
+            polygon: ['points'],
+        };
+
+        const SHAPE_TAGS = new Set(Object.keys(KEEP_ATTRS));
+
+        function collectPaths(node, out, parentTransform) {
+            for (const child of node.children) {
+                const tag = child.tagName.toLowerCase();
+
+                // Skip non-visual / style elements
+                if (['style', 'defs', 'clippath', 'mask', 'metadata', 'title', 'desc', 'symbol'].includes(tag)) continue;
+
+                // Accumulate transforms from groups
+                let transform = parentTransform || '';
+                const t = child.getAttribute('transform');
+                if (t) transform = transform ? `${transform} ${t}` : t;
+
+                if (tag === 'g' || tag === 'a' || tag === 'svg') {
+                    collectPaths(child, out, transform);
+                    continue;
+                }
+
+                if (tag === 'use') {
+                    const refId = (child.getAttribute('href') || child.getAttributeNS('http://www.w3.org/1999/xlink', 'href') || '').replace('#', '');
+                    if (refId) {
+                        const target = child.ownerDocument.getElementById(refId);
+                        if (target) collectPaths(target, out, transform);
+                    }
+                    continue;
+                }
+
+                if (!SHAPE_TAGS.has(tag)) continue;
+
+                const attrs = {};
+                const allowed = KEEP_ATTRS[tag] || [];
+                for (const a of allowed) {
+                    const v = child.getAttribute(a);
+                    if (v != null) attrs[a] = v;
+                }
+                if (transform) attrs.transform = transform;
+
+                out.push({ tag, attrs });
+            }
+        }
+
+        function fmt(n) {
+            return +n.toFixed(6);
+        }
+
+        // ── Input handlers ──
+
+        function process(raw) {
+            try {
+                convertedSvg = convertSvg(raw);
+                codeOutput.value = convertedSvg;
+                preview.innerHTML = convertedSvg;
+                output.classList.add('visible');
+                hideError();
+            } catch (e) {
+                showError(e.message);
+            }
+        }
+
+        // File upload
+        dropZone.addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', () => {
+            const file = fileInput.files[0];
+            if (file) readFile(file);
+        });
+
+        // Drag and drop
+        dropZone.addEventListener('dragover', e => {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+        dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+        dropZone.addEventListener('drop', e => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            const file = e.dataTransfer.files[0];
+            if (file) readFile(file);
+        });
+
+        function readFile(file) {
+            if (!file.name.endsWith('.svg') && file.type !== 'image/svg+xml') {
+                showError('Please upload an SVG file.');
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = () => process(reader.result);
+            reader.onerror = () => showError('Could not read the file.');
+            reader.readAsText(file);
+        }
+
+        // URL fetch
+        fetchBtn.addEventListener('click', async () => {
+            const url = urlInput.value.trim();
+            if (!url) { showError('Enter a URL first.'); return; }
+
+            fetchBtn.disabled = true;
+            fetchBtn.textContent = 'Fetching…';
+            hideError();
+
+            try {
+                const res = await fetch(url);
+                if (!res.ok) throw new Error(`Fetch failed (${res.status}).`);
+                const text = await res.text();
+                process(text);
+            } catch (e) {
+                showError(e.message || 'Could not fetch the SVG.');
+            } finally {
+                fetchBtn.disabled = false;
+                fetchBtn.textContent = 'Fetch';
+            }
+        });
+
+        urlInput.addEventListener('keydown', e => {
+            if (e.key === 'Enter') fetchBtn.click();
+        });
+
+        // Download
+        downloadBtn.addEventListener('click', () => {
+            const blob = new Blob([convertedSvg], { type: 'image/svg+xml' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'icon.svg';
+            a.click();
+            URL.revokeObjectURL(a.href);
+        });
+
+        // Copy
+        copyBtn.addEventListener('click', async () => {
+            await navigator.clipboard.writeText(convertedSvg);
+            copyBtn.textContent = 'Copied!';
+            setTimeout(() => { copyBtn.textContent = 'Copy code'; }, 1500);
+        });
+    </script>
+</body>
+</html>
