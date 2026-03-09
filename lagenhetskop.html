@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lägenhetsköp</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+            line-height: 1.6;
+            max-width: 960px;
+            margin: 2rem auto;
+            padding: 0 1.5rem;
+            color: #111827;
+            font-size: 0.9rem;
+        }
+        h1 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+
+        /* Personal finance cards */
+        .cards { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem; }
+        .card {
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            padding: 0.75rem 1rem;
+        }
+        .card h2 { font-size: 0.95rem; font-weight: 600; margin: 0 0 0.5rem; }
+        .card-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 2px 0;
+        }
+        .card-row label { flex-shrink: 0; margin-right: 0.5rem; }
+
+        /* Summary bar */
+        .summary {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+            padding: 0.75rem 1rem;
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            margin-bottom: 1rem;
+        }
+        .summary-item { display: flex; justify-content: space-between; gap: 1rem; white-space: nowrap; flex: 1; }
+        .summary-label { color: #6b7280; }
+        .summary-value { font-weight: 600; text-align: right; }
+        .summary-value.warn { color: #dc2626; }
+
+        /* Input fields */
+        input.num, input.pct {
+            text-align: right;
+            padding: 6px 8px;
+            border: 1px solid #93c5fd;
+            border-radius: 4px;
+            background: #eff6ff;
+            font-family: inherit;
+            font-size: 0.9rem;
+            color: #1e40af;
+            min-height: 36px;
+        }
+        input.num { width: 130px; }
+        input.pct { width: 80px; }
+        input.num:focus, input.pct:focus {
+            outline: none;
+            border-color: #2563eb;
+            box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
+        }
+
+        /* Scenario table */
+        .table-wrap {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            margin: 0 -1.5rem 1rem;
+            padding: 0 1.5rem;
+        }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 5px 10px; text-align: right; white-space: nowrap; }
+        th:first-child, td:first-child { text-align: left; position: sticky; left: 0; background: #fff; z-index: 1; }
+        thead th {
+            border-bottom: 2px solid #d1d5db;
+            font-size: 0.85rem;
+            color: #6b7280;
+            font-weight: 500;
+            padding-bottom: 6px;
+            position: sticky;
+            top: 0;
+            background: #fff;
+            z-index: 2;
+        }
+        thead th:first-child { z-index: 3; }
+        .section-header td {
+            font-weight: 600;
+            padding-top: 12px;
+            padding-bottom: 4px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        .spacer td { height: 8px; }
+        .calc { color: #374151; font-variant-numeric: tabular-nums; }
+        .total-row td { font-weight: 600; border-top: 1px solid #d1d5db; padding-top: 6px; }
+        .pct-row td { color: #6b7280; font-style: italic; }
+        .negative { color: #dc2626; }
+        .section-header td { background: #fff; }
+        .total-row td, .pct-row td, .spacer td { background: #fff; }
+
+        @media (max-width: 640px) {
+            body { margin: 1rem auto; padding: 0 1rem; font-size: 0.85rem; }
+            h1 { font-size: 1.15rem; }
+            .cards { grid-template-columns: 1fr; }
+            .summary { font-size: 0.85rem; }
+            input.num { width: 110px; }
+            input.pct { width: 70px; }
+            .table-wrap { margin: 0 -1rem 1rem; padding: 0; }
+            th:first-child, td:first-child { padding-left: 1rem; min-width: 140px; }
+            th:last-child, td:last-child { padding-right: 1rem; }
+        }
+    </style>
+</head>
+<body>
+    <h1>Lägenhetsköp</h1>
+
+    <div class="cards">
+        <div class="card">
+            <h2>Person 1</h2>
+            <div class="card-row"><label>Lön efter skatt</label><input class="num" inputmode="decimal" id="calle-lon" value="44 000"></div>
+            <div class="card-row"><label>Fritt kapital</label><input class="num" inputmode="decimal" id="calle-kapital" value="3 200 000"></div>
+            <div class="card-row"><label>Insats</label><input class="num" inputmode="decimal" id="calle-insats" value="2 750 000"></div>
+            <div class="card-row"><label>Buffert</label><span class="calc" id="out-calle-buffert"></span></div>
+        </div>
+        <div class="card">
+            <h2>Person 2</h2>
+            <div class="card-row"><label>Lön efter skatt</label><input class="num" inputmode="decimal" id="lovisa-lon" value="39 000"></div>
+            <div class="card-row"><label>Fritt kapital</label><input class="num" inputmode="decimal" id="lovisa-kapital" value="1 290 000"></div>
+            <div class="card-row"><label>Vinst</label><input class="num" inputmode="decimal" id="lovisa-vinst" value="730 000"></div>
+            <div class="card-row"><label>Skatt (30%)</label><span class="calc" id="out-lovisa-skatt"></span></div>
+            <div class="card-row"><label>Återstår</label><span class="calc" id="out-lovisa-aterstar"></span></div>
+            <div class="card-row"><label>Insats</label><input class="num" inputmode="decimal" id="lovisa-insats" value="800 000"></div>
+            <div class="card-row"><label>Buffert</label><span class="calc" id="out-lovisa-buffert"></span></div>
+        </div>
+    </div>
+
+    <div class="summary">
+        <div class="summary-item"><span class="summary-label">Månadsinkomst</span><span class="summary-value" id="out-manadsinkomst"></span></div>
+        <div class="summary-item"><span class="summary-label">Årsinkomst</span><span class="summary-value" id="out-arsinkomst"></span></div>
+        <div class="summary-item"><span class="summary-label">Skärpt amort.krav</span><span class="summary-value" id="out-amartkrav"></span></div>
+    </div>
+
+    <div class="table-wrap">
+    <table>
+        <thead>
+            <tr><th></th><th>Scenario 1</th><th>Scenario 2</th><th>Scenario 3</th></tr>
+        </thead>
+        <tbody>
+            <tr class="section-header"><td>Gemensamt</td><td></td><td></td><td></td></tr>
+            <tr><td>Tillgängligt</td><td class="calc" id="out-tillgangligt-0"></td><td class="calc" id="out-tillgangligt-1"></td><td class="calc" id="out-tillgangligt-2"></td></tr>
+            <tr><td>Buffert</td><td><input class="num" inputmode="decimal" id="gem-buffert-0" value="200 000"></td><td><input class="num" inputmode="decimal" id="gem-buffert-1" value="175 000"></td><td><input class="num" inputmode="decimal" id="gem-buffert-2" value="150 000"></td></tr>
+
+            <tr class="section-header"><td>Köpeskilling och lån</td><td></td><td></td><td></td></tr>
+            <tr><td>Kontantinsats</td><td class="calc" id="out-kontantinsats-0"></td><td class="calc" id="out-kontantinsats-1"></td><td class="calc" id="out-kontantinsats-2"></td></tr>
+            <tr><td>Köpeskilling</td><td><input class="num" inputmode="decimal" id="kopeskilling-0" value="7 500 000"></td><td><input class="num" inputmode="decimal" id="kopeskilling-1" value="9 000 000"></td><td><input class="num" inputmode="decimal" id="kopeskilling-2" value="9 000 000"></td></tr>
+            <tr><td>Renoveringar</td><td><input class="num" inputmode="decimal" id="renoveringar-0" value="200 000"></td><td><input class="num" inputmode="decimal" id="renoveringar-1" value="200 000"></td><td><input class="num" inputmode="decimal" id="renoveringar-2" value="200 000"></td></tr>
+            <tr><td>Lån</td><td class="calc" id="out-lan-0"></td><td class="calc" id="out-lan-1"></td><td class="calc" id="out-lan-2"></td></tr>
+
+            <tr class="section-header"><td>Ränta och amortering</td><td></td><td></td><td></td></tr>
+            <tr><td>Ränta, %</td><td><input class="pct" inputmode="decimal" id="ranta-0" value="3,50"></td><td><input class="pct" inputmode="decimal" id="ranta-1" value="3,50"></td><td><input class="pct" inputmode="decimal" id="ranta-2" value="3,50"></td></tr>
+            <tr><td>Räntekostnad, år</td><td class="calc" id="out-rantaar-0"></td><td class="calc" id="out-rantaar-1"></td><td class="calc" id="out-rantaar-2"></td></tr>
+            <tr><td>Räntekostnad, månad</td><td class="calc" id="out-rantaman-0"></td><td class="calc" id="out-rantaman-1"></td><td class="calc" id="out-rantaman-2"></td></tr>
+            <tr><td>Amortering, %</td><td><input class="pct" inputmode="decimal" id="amortering-0" value="2,00"></td><td><input class="pct" inputmode="decimal" id="amortering-1" value="3,00"></td><td><input class="pct" inputmode="decimal" id="amortering-2" value="3,00"></td></tr>
+            <tr><td>Amortering, år</td><td class="calc" id="out-amortaar-0"></td><td class="calc" id="out-amortaar-1"></td><td class="calc" id="out-amortaar-2"></td></tr>
+            <tr><td>Amortering, månad</td><td class="calc" id="out-amortman-0"></td><td class="calc" id="out-amortman-1"></td><td class="calc" id="out-amortman-2"></td></tr>
+            <tr class="total-row"><td>Total månadskostnad</td><td class="calc" id="out-totman-0"></td><td class="calc" id="out-totman-1"></td><td class="calc" id="out-totman-2"></td></tr>
+
+            <tr class="spacer"><td></td><td></td><td></td><td></td></tr>
+            <tr class="section-header"><td>Ränteavdrag</td><td></td><td></td><td></td></tr>
+            <tr><td>Gräns ränteavdrag</td><td><input class="num" inputmode="decimal" id="grans" value="200 000"></td><td></td><td></td></tr>
+            <tr><td>Överskjutande räntekostnad</td><td class="calc" id="out-overskjut-0"></td><td class="calc" id="out-overskjut-1"></td><td class="calc" id="out-overskjut-2"></td></tr>
+            <tr><td>Ränteavdrag, år</td><td class="calc" id="out-avdragar-0"></td><td class="calc" id="out-avdragar-1"></td><td class="calc" id="out-avdragar-2"></td></tr>
+            <tr><td>Ränteavdrag, månad</td><td class="calc" id="out-avdragman-0"></td><td class="calc" id="out-avdragman-1"></td><td class="calc" id="out-avdragman-2"></td></tr>
+            <tr class="total-row"><td>Månadskostnad efter avdrag</td><td class="calc" id="out-manefteravdrag-0"></td><td class="calc" id="out-manefteravdrag-1"></td><td class="calc" id="out-manefteravdrag-2"></td></tr>
+            <tr class="pct-row"><td>% av månadsinkomst</td><td class="calc" id="out-pctlan-0"></td><td class="calc" id="out-pctlan-1"></td><td class="calc" id="out-pctlan-2"></td></tr>
+
+            <tr class="spacer"><td></td><td></td><td></td><td></td></tr>
+            <tr class="section-header"><td>Övrigt</td><td></td><td></td><td></td></tr>
+            <tr><td>Avgift Brf</td><td><input class="num" inputmode="decimal" id="avgift" value="6 437"></td><td></td><td></td></tr>
+            <tr><td>Driftkostnader, år</td><td><input class="num" inputmode="decimal" id="driftkostnader" value="11 250"></td><td></td><td></td></tr>
+            <tr><td>Driftkostnader, månad</td><td class="calc" id="out-driftman"></td><td></td><td></td></tr>
+            <tr><td>Bil</td><td><input class="num" inputmode="decimal" id="bil" value="6 000"></td><td></td><td></td></tr>
+
+            <tr class="spacer"><td></td><td></td><td></td><td></td></tr>
+            <tr class="total-row"><td>Total månadskostnad</td><td class="calc" id="out-totalman-0"></td><td class="calc" id="out-totalman-1"></td><td class="calc" id="out-totalman-2"></td></tr>
+            <tr class="pct-row"><td>% av månadsinkomst</td><td class="calc" id="out-pcttotal-0"></td><td class="calc" id="out-pcttotal-1"></td><td class="calc" id="out-pcttotal-2"></td></tr>
+            <tr class="spacer"><td></td><td></td><td></td><td></td></tr>
+            <tr class="total-row"><td>Total månadskostnad, inkl bil</td><td class="calc" id="out-totalbil-0"></td><td class="calc" id="out-totalbil-1"></td><td class="calc" id="out-totalbil-2"></td></tr>
+            <tr class="pct-row"><td>% av månadsinkomst</td><td class="calc" id="out-pctbil-0"></td><td class="calc" id="out-pctbil-1"></td><td class="calc" id="out-pctbil-2"></td></tr>
+        </tbody>
+    </table>
+    </div>
+
+    <script>
+        const $ = id => document.getElementById(id);
+
+        function parseNum(str) {
+            return parseFloat(String(str).replace(/\s/g, '').replace(',', '.')) || 0;
+        }
+
+        function val(id) { return parseNum($(id).value); }
+
+        function fmtKr(n) {
+            const s = Math.round(n).toLocaleString('sv-SE');
+            return s + ' kr';
+        }
+
+        function fmtKr2(n) {
+            return n.toLocaleString('sv-SE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' kr';
+        }
+
+        function fmtPct(n) {
+            return (n * 100).toLocaleString('sv-SE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '%';
+        }
+
+        function set(id, text, negative) {
+            const el = $(id);
+            if (!el) return;
+            el.textContent = text;
+            el.classList.toggle('negative', !!negative);
+        }
+
+        function recalc() {
+            // Personal
+            const calleLon = val('calle-lon');
+            const calleKapital = val('calle-kapital');
+            const calleInsats = val('calle-insats');
+            const calleBuffert = calleKapital - calleInsats;
+            set('out-calle-buffert', fmtKr(calleBuffert), calleBuffert < 0);
+
+            const lovisaLon = val('lovisa-lon');
+            const lovisaKapital = val('lovisa-kapital');
+            const lovisaVinst = val('lovisa-vinst');
+            const lovisaInsats = val('lovisa-insats');
+
+            const lovisaSkatt = lovisaVinst * 0.30;
+            const lovisaAterstar = lovisaKapital - lovisaSkatt;
+            const lovisaBuffert = lovisaAterstar - lovisaInsats;
+
+            set('out-lovisa-skatt', fmtKr(lovisaSkatt));
+            set('out-lovisa-aterstar', fmtKr(lovisaAterstar));
+            set('out-lovisa-buffert', fmtKr(lovisaBuffert), lovisaBuffert < 0);
+
+            // Grundsiffror
+            const manadsinkomst = calleLon + lovisaLon;
+            const arsinkomst = manadsinkomst * 12;
+            const amartkrav = arsinkomst * 4.5;
+
+            set('out-manadsinkomst', fmtKr(manadsinkomst));
+            set('out-arsinkomst', fmtKr(arsinkomst));
+            set('out-amartkrav', fmtKr(amartkrav));
+
+            // Shared inputs
+            const grans = val('grans');
+            const avgift = val('avgift');
+            const driftAr = val('driftkostnader');
+            const driftMan = driftAr / 12;
+            const bil = val('bil');
+
+            set('out-driftman', fmtKr2(driftMan));
+
+            const tillgangligt = calleInsats + lovisaInsats;
+
+            // Per scenario
+            for (let i = 0; i < 3; i++) {
+                // Gemensamt
+                const gemBuffert = val(`gem-buffert-${i}`);
+                set(`out-tillgangligt-${i}`, fmtKr(tillgangligt));
+
+                // Köpeskilling och lån
+                const kontantinsats = tillgangligt - gemBuffert;
+                set(`out-kontantinsats-${i}`, fmtKr(kontantinsats));
+                const kopeskilling = val(`kopeskilling-${i}`);
+                const renoveringar = val(`renoveringar-${i}`);
+                const lan = kopeskilling + renoveringar - kontantinsats;
+
+                set(`out-lan-${i}`, fmtKr(lan));
+
+                // Ränta och amortering
+                const rantaPct = val(`ranta-${i}`) / 100;
+                const amortPct = val(`amortering-${i}`) / 100;
+
+                const rantaAr = lan * rantaPct;
+                const rantaMan = rantaAr / 12;
+                const amortAr = lan * amortPct;
+                const amortMan = amortAr / 12;
+                const totMan = rantaMan + amortMan;
+
+                set(`out-rantaar-${i}`, fmtKr2(rantaAr));
+                set(`out-rantaman-${i}`, fmtKr2(rantaMan));
+                set(`out-amortaar-${i}`, fmtKr2(amortAr));
+                set(`out-amortman-${i}`, fmtKr2(amortMan));
+                set(`out-totman-${i}`, fmtKr2(totMan));
+
+                // Ränteavdrag
+                const overskjut = rantaAr - grans;
+                const avdragAr = overskjut > 0
+                    ? grans * 0.3 + overskjut * 0.21
+                    : grans * 0.3;
+                const avdragMan = avdragAr / 12;
+                const manEfterAvdrag = totMan - avdragMan;
+                const pctLan = manadsinkomst > 0 ? manEfterAvdrag / manadsinkomst : 0;
+
+                set(`out-overskjut-${i}`, fmtKr2(overskjut), overskjut < 0);
+                set(`out-avdragar-${i}`, fmtKr2(avdragAr));
+                set(`out-avdragman-${i}`, fmtKr2(avdragMan));
+                set(`out-manefteravdrag-${i}`, fmtKr2(manEfterAvdrag));
+                set(`out-pctlan-${i}`, fmtPct(pctLan));
+
+                // Totals
+                const totalMan = manEfterAvdrag + avgift + driftMan;
+                const pctTotal = manadsinkomst > 0 ? totalMan / manadsinkomst : 0;
+                const totalBil = totalMan + bil;
+                const pctBil = manadsinkomst > 0 ? totalBil / manadsinkomst : 0;
+
+                set(`out-totalman-${i}`, fmtKr2(totalMan));
+                set(`out-pcttotal-${i}`, fmtPct(pctTotal));
+                set(`out-totalbil-${i}`, fmtKr2(totalBil));
+                set(`out-pctbil-${i}`, fmtPct(pctBil));
+            }
+        }
+
+        // Format number inputs on blur, strip on focus
+        document.querySelectorAll('input.num').forEach(el => {
+            el.addEventListener('blur', () => {
+                const v = parseNum(el.value);
+                if (v !== 0) el.value = Math.round(v).toLocaleString('sv-SE');
+                else if (el.value.trim() === '') el.value = '0';
+            });
+            el.addEventListener('focus', () => el.select());
+        });
+        document.querySelectorAll('input.pct').forEach(el => {
+            el.addEventListener('focus', () => el.select());
+        });
+
+        // Recalc on any input change
+        document.querySelectorAll('input').forEach(el => {
+            el.addEventListener('input', recalc);
+        });
+
+        recalc();
+    </script>
+</body>
+</html>
